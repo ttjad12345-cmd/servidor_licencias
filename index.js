@@ -13,7 +13,7 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Conectado a MongoDB Atlas exitosamente'))
   .catch(err => console.error('Error al conectar a MongoDB:', err));
 
-// Definir cómo se guarda una licencia en la base de datos
+// Definir cómo se guarda una licencia en la base de datoS
 const licenciaSchema = new mongoose.Schema({
   clave: { type: String, required: true, unique: true },
   plan: { type: String, required: true },
