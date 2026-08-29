@@ -6,14 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Conexión a MongoDB usando la variable de entorno que guardaste en Render
 const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log('Conectado a MongoDB Atlas exitosamente'))
   .catch(err => console.error('Error al conectar a MongoDB:', err));
 
-// Definir cómo se guarda una licencia en la base de datoS
 const licenciaSchema = new mongoose.Schema({
   clave: { type: String, required: true, unique: true },
   plan: { type: String, required: true },
@@ -24,40 +22,45 @@ const licenciaSchema = new mongoose.Schema({
 
 const Licencia = mongoose.model('Licencia', licenciaSchema);
 
-// Ruta para validar la licencia desde tu aplicación de escritorio
 app.post('/api/validar', async (req, res) => {
   try {
     const { clave, hardwareId } = req.body;
 
     if (!clave) {
-      return res.status(400).json({ valido: false, mensaje: 'Clave no proporcionada' });
+      return.status(400).json({ valido: false, mensaje: 'Clave no proporcionada' });
     }
 
-    // Buscar la licencia en MongoDB (ignorando mayúsculas/minúsculas)
-    const licenciaEncontrada = await Licencia.findOne({ 
-      clave: clave.trim().toUpperCase() 
-    });
+    const claveLimpia = clave.trim().toUpperCase();
+    let licenciaEncontrada = await Licencia.findOne({ clave: claveLimpia });
+
+    // Si la clave es la de administrador y no existe, la creamos automáticamente en este instante
+    if (!licenciaEncontrada && claveLimpia === 'ADMIN_TKD_2026') {
+      licenciaEncontrada = new Licencia({
+        clave: 'ADMIN_TKD_2026',
+        plan: 'pro',
+        areas: 10,
+        activa: true
+      });
+      await licenciaEncontrada.save();
+    }
 
     if (!licenciaEncontrada) {
-      return res.json({ valido: false, mensaje: 'La clave de licencia no existe.' });
+      return.json({ valido: false, mensaje: 'La clave de licencia no existe.' });
     }
 
     if (!licenciaEncontrada.activa) {
-      return res.json({ valido: false, mensaje: 'Esta licencia está desactivada.' });
+      return.json({ valido: false, mensaje: 'Esta licencia está desactivada.' });
     }
 
-    // Si ya tiene un hardwareId registrado y es diferente, rechazar (evita compartir licencia en otra PC)
     if (licenciaEncontrada.hardwareId && licenciaEncontrada.hardwareId !== hardwareId) {
-      return res.json({ valido: false, mensaje: 'Esta licencia ya está en uso en otro equipo.' });
+      return.json({ valido: false, mensaje: 'Esta licencia ya está en uso en otro equipo.' });
     }
 
-    // Si no tiene hardwareId registrado, se lo asociamos a esta PC
     if (!licenciaEncontrada.hardwareId && hardwareId) {
       licenciaEncontrada.hardwareId = hardwareId;
       await licenciaEncontrada.save();
     }
 
-    // Si todo es correcto, devolvemos los datos del plan y áreas
     res.json({
       valido: true,
       plan: licenciaEncontrada.plan,
@@ -67,22 +70,23 @@ app.post('/api/validar', async (req, res) => {
 
   } catch (error) {
     console.error('Error en el servidor:', error);
-    res.status(500).json({ valido: false, mensaje: 'Error interno en el servidor' });
+    res.status(500).json({ valido: false, mensaje: 'Error interno en el servidor: ' + error.message });
   }
 });
 
-// Ruta auxiliar para agregar licencias fácilmente desde el navegador o Postman (Opcional)
 app.post('/api/crear', async (req, res) => {
   try {
     const { clave, plan, areas } = req.body;
-    const nuevaLicencia = new Licencia({
-      clave: clave.trim().toUpperCase(),
-      plan,
-      areas,
-      activa: true
-    });
-    await nuevaLicencia.save();
-    res.json({ exito: true, mensaje: 'Licencia creada correctamente en MongoDB' });
+    const claveLimpia = clave.trim().toUpperCase();
+    
+    // Si ya existe, la actualizamos en lugar de dar error
+    await Licencia.findOneAndUpdate(
+      { clave: claveLimpia },
+      { plan, areas, activa: true },
+      { upsert: true, new: true }
+    );
+
+    res.json({ exito: true, mensaje: 'Licencia guardada correctamente en MongoDB' });
   } catch (error) {
     res.status(400).json({ exito: false, error: error.message });
   }
