@@ -9,7 +9,7 @@ app.use(cors());
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
-  console.error('FATAL: La variable MONGO_URI no está definida en las variables de entorno.');
+  console.error('FATAL: La variable MONGO_URI no está definida.');
   process.exit(1);
 }
 
@@ -51,15 +51,15 @@ app.post('/api/validar', async (req, res) => {
     }
 
     if (!licenciaEncontrada) {
-      return.json({ valido: false, mensaje: 'La clave de licencia no existe.' });
+      return res.json({ valido: false, mensaje: 'La clave de licencia no existe.' });
     }
 
     if (!licenciaEncontrada.activa) {
-      return.json({ valido: false, mensaje: 'Esta licencia está desactivada.' });
+      return res.json({ valido: false, mensaje: 'Esta licencia está desactivada.' });
     }
 
     if (licenciaEncontrada.hardwareId && licenciaEncontrada.hardwareId !== hardwareId) {
-      return.json({ valido: false, mensaje: 'Esta licencia ya está en uso en otro equipo.' });
+      return res.json({ valido: false, mensaje: 'Esta licencia ya está en uso en otro equipo.' });
     }
 
     if (!licenciaEncontrada.hardwareId && hardwareId) {
@@ -84,7 +84,7 @@ app.post('/api/crear', async (req, res) => {
   try {
     const { clave, plan, areas } = req.body;
     if (!clave || !plan || areas === undefined) {
-      return res.status(400).json({ exito: false, error: 'Faltan datos obligatorios (clave, plan, areas)' });
+      return res.status(400).json({ exito: false, error: 'Faltan datos obligatorios' });
     }
 
     const claveLimpia = clave.trim().toUpperCase();
@@ -104,5 +104,5 @@ app.post('/api/crear', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor de licencias corriendo en el puerto ${PORT}`);
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
