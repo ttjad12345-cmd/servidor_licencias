@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Conexión a MongoDB (Render usa la variable de entorno MONGO_URI que ya configuraste)
+// Conexión a MongoDB usando la variable de entorno configurada en Render
 const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
@@ -20,7 +20,7 @@ const Licencia = mongoose.model('Licencia', new mongoose.Schema({
   activa: Boolean
 }));
 
-app.post('/api/activar', async (req, res) => {
+app.post(['/api/activar', '/api/validar-licencia'], async (req, res) => {
   try {
     const { clave } = req.body;
     if (!clave) {
@@ -29,7 +29,6 @@ app.post('/api/activar', async (req, res) => {
 
     const claveLimpia = clave.trim().toUpperCase();
 
-    // Busca ignorando espacios accidentales en la base de datos
     const licenciaEncontrada = await Licencia.findOne({ 
       clave: { $regex: new RegExp(`^\\s*${claveLimpia}\\s*$`, "i") } 
     });
