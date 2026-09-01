@@ -6,7 +6,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Asegúrate de que tu modelo de Mongoose esté apuntando correctamente a la colección de licencias
+// Conexión a MongoDB (Render usa la variable de entorno MONGO_URI que ya configuraste)
+const MONGO_URI = process.env.MONGO_URI;
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('Conectado a MongoDB correctamente'))
+  .catch(err => console.error('Error conectando a MongoDB:', err));
+
 const Licencia = mongoose.model('Licencia', new mongoose.Schema({
   clave: String,
   plan: String,
@@ -21,10 +27,9 @@ app.post('/api/activar', async (req, res) => {
       return res.json({ exito: false, mensaje: "Clave no proporcionada." });
     }
 
-    // Limpiamos espacios y pasamos a mayúsculas
     const claveLimpia = clave.trim().toUpperCase();
 
-    // Buscamos ignorando espacios accidentales guardados en la base de datos
+    // Busca ignorando espacios accidentales en la base de datos
     const licenciaEncontrada = await Licencia.findOne({ 
       clave: { $regex: new RegExp(`^\\s*${claveLimpia}\\s*$`, "i") } 
     });
@@ -44,4 +49,7 @@ app.post('/api/activar', async (req, res) => {
   }
 });
 
-// Mantén tu conexión a MongoDB y puerto de la manera en que ya los tengas configurados aquí abajo...
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor de licencias corriendo en puerto ${PORT}`);
+});
